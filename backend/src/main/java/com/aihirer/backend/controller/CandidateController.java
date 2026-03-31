@@ -37,11 +37,21 @@ public class CandidateController {
     private ApplicationRoundRepository applicationRoundRepository;
     @Autowired
     private OfferRepository offerRepository;
+    @Autowired
+    private UserRepository userRepository;
 
     private UUID getCurrentUserId() {
         UserDetailsImpl u = (UserDetailsImpl) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         return u.getId();
+    }
+
+    @GetMapping("/profile")
+    public ResponseEntity<User> getMyProfile() {
+        UUID candidateId = getCurrentUserId();
+        return userRepository.findById(candidateId)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -153,6 +163,7 @@ public class CandidateController {
         // Update application
         applicationRepository.findById(offer.getApplicationId()).ifPresent(app -> {
             app.setOverallStatus(OverallStatus.OFFER_ACCEPTED);
+            app.setCurrentStage(ApplicationStage.HIRED);
             applicationRepository.save(app);
         });
 
@@ -197,6 +208,7 @@ public class CandidateController {
         // Update application
         applicationRepository.findById(offer.getApplicationId()).ifPresent(app -> {
             app.setOverallStatus(OverallStatus.OFFER_REJECTED);
+            app.setCurrentStage(ApplicationStage.REJECTED);
             applicationRepository.save(app);
         });
 

@@ -389,8 +389,14 @@ public class ApplicationService {
         User candidate = userRepository.findById(app.getCandidateId()).orElseThrow();
         Job job = jobRepository.findById(app.getJobId()).orElseThrow();
 
-        // Idempotent Offer Creation
+        // Idempotent Offer Creation / Reset Status on Regeneration
         Offer offer = offerRepository.findByApplicationId(applicationId)
+                .map(existing -> {
+                    existing.setStatus("PENDING");
+                    existing.setRejectionReason(null);
+                    existing.setRespondedAt(null);
+                    return offerRepository.save(existing);
+                })
                 .orElseGet(() -> {
                     Offer newOffer = Offer.builder()
                             .applicationId(applicationId)
@@ -406,7 +412,7 @@ public class ApplicationService {
         aiReq.put("role", job.getTitle());
         aiReq.put("salary", "$80,000 per annum");
         aiReq.put("joining_date", "TBD");
-        aiReq.put("company", "Virtusa");
+        aiReq.put("company", "AI Hirer");
         aiReq.put("overall_score", app.getOverallRoundScore() != null ? app.getOverallRoundScore() : 85.0);
 
         Map<String, Object> aiResponse = aiService.generateOffer(aiReq);

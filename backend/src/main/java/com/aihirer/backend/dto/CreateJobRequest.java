@@ -3,6 +3,7 @@ package com.aihirer.backend.dto;
 import lombok.Data;
 import java.util.List;
 import java.util.Map;
+import jakarta.validation.constraints.NotBlank;
 
 /**
  * DTO for the job creation form submitted from the HR dashboard.
@@ -12,9 +13,15 @@ import java.util.Map;
  */
 @Data
 public class CreateJobRequest {
+    @NotBlank(message = "Title is required")
     private String title;
+    
+    @NotBlank(message = "Department is required")
     private String department;
+    
+    @NotBlank(message = "Location is required")
     private String location;
+    
     private String description;
 
     // Optional extended fields — HR can supply them; defaults applied in controller

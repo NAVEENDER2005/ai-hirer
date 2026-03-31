@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import jakarta.validation.Valid;
 import com.aihirer.backend.service.CandidateProfileAnalyzerService;
 
 /**
@@ -99,7 +100,7 @@ public class HrController {
      * Creates a new job posting.
      */
     @PostMapping("/jobs")
-    public ResponseEntity<Job> createJob(@RequestBody CreateJobRequest req) {
+    public ResponseEntity<Job> createJob(@Valid @RequestBody CreateJobRequest req) {
         Job job = Job.builder()
                 .title(req.getTitle())
                 .description(req.getDescription() != null ? req.getDescription() : "")
@@ -530,6 +531,7 @@ public class HrController {
 
         dto.put("stage", app.getCurrentStage() != null ? app.getCurrentStage().name() : null);
         dto.put("overallStatus", app.getOverallStatus() != null ? app.getOverallStatus().name() : null);
+        dto.put("bgvStatus", app.getBgvStatus() != null ? app.getBgvStatus().name() : "NOT_STARTED");
         dto.put("status", app.getOverallStatus() != null ? app.getOverallStatus().name() : null);
         dto.put("attemptCount", app.getAttemptCount());
         dto.put("currentRound", app.getCurrentRoundNumber());

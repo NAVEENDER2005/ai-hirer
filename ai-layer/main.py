@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Annotated
 import os
@@ -8,7 +8,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+from fastapi.middleware.cors import CORSMiddleware
+
 app = FastAPI(title="AI Hiring Service")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 
@@ -76,10 +86,16 @@ class OfferLetterRequest(BaseModel):
     job_title: str | None = None
     salary: str = "Competitive"
     joining_date: str = "To be discussed"
-    company: str = "Virtusa"
+    company: str = "AI Hirer"
 
 class OfferLetterResponse(BaseModel):
     offer_letter_content: str
+
+class VideoAnalysisResponse(BaseModel):
+    transcript: str
+    summary: str
+    recommendation: str
+    reasons: List[str]
 
 # -- Helpers --
 
@@ -286,3 +302,54 @@ HR Department, {request.company}
     """
     return OfferLetterResponse(offer_letter_content=content.strip())
 
+@app.post("/ai/analyze-video")
+async def analyze_video(
+    file: UploadFile = File(...), 
+    round_type: str = Form("Technical HR Interview")
+) -> VideoAnalysisResponse:
+    # Simulating Speech-to-Text and AI Summary & Recommendation Processing
+    # Returning a realistic transcript mock dynamically based on the round
+    
+    technical_transcript = (
+        "HR: Hi, thanks for joining. Can you walk me through your experience building scalable APIs?\\n"
+        "Candidate: Sure, in my last project I used Spring Boot and Postgres. We structured our endpoints using REST principles, and optimized DB queries with indexing and caching via Redis to handle about 10k requests per second.\\n"
+        "HR: That sounds solid. How did you handle security?\\n"
+        "Candidate: We used OAuth2 with JWT tokens, and implemented role-based access control. I also configured global exception handlers to prevent sensitive data leaks in error messages.\\n"
+        "HR: Excellent. And what about CI/CD?\\n"
+        "Candidate: I setup GitHub Actions for automated unit testing and deployment. Once pushed to the main branch, a Docker image was built and deployed to our Kubernetes cluster."
+    )
+    
+    general_transcript = (
+        "HR: Tell me about a time you had to resolve a conflict within your team.\\n"
+        "Candidate: Once, my team was split on choosing between a NoSQL and a Relational database for a new feature. I arranged a meeting to list the pros and cons based on our exact data needs, and we did a small proof of concept. The data drove our decision to stay with a relational DB, and the team was aligned.\\n"
+        "HR: Great approach. Where do you see yourself in 3 years?\\n"
+        "Candidate: I aim to be a Senior Developer driving architectural decisions and mentoring juniors, ensuring our products are built with high engineering standards.\\n"
+        "HR: How do you handle tight deadlines?\\n"
+        "Candidate: Prioritization is key. I break down tasks, focus on the MVP first, and keep stakeholders updated on progress."
+    )
+    
+    transcript = technical_transcript if "tech" in round_type.lower() else general_transcript
+    
+    if "tech" in round_type.lower():
+        summary = "Candidate demonstrated a very strong understanding of REST API design, database scaling strategies (Redis caching, indexing), and OAuth2 security patterns. The responses were articulate and backed by concrete examples of deploying via Docker and Kubernetes."
+        recommendation = "HIRE"
+        reasons = [
+            "Clearly explained scalable API concepts using Spring Boot.",
+            "Demonstrated hands-on experience with JWT security and CI/CD pipelines.",
+            "Understands system architecture and DevOps principles."
+        ]
+    else:
+        summary = "Candidate shows excellent soft skills, conflict resolution, and leadership potential. Approaches problems analytically by conducting POCs to align the team. Shows clear long-term career vision and good time-management strategies for tight deadlines."
+        recommendation = "HIRE"
+        reasons = [
+            "Data-driven approach to resolving team conflicts.",
+            "Strong communication and maturity in handling stakeholder expectations.",
+            "Clear alignment with company culture and senior technical pathways."
+        ]
+        
+    return VideoAnalysisResponse(
+        transcript=transcript,
+        summary=summary,
+        recommendation=recommendation,
+        reasons=reasons
+    )

@@ -40,6 +40,8 @@ public class HiringFlowService {
     private ApplicationRoundRepository applicationRoundRepository;
     @Autowired
     private CandidateProfileAnalyzerService candidateProfileAnalyzerService;
+    @Autowired
+    private OfferRepository offerRepository;
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
 
@@ -124,8 +126,11 @@ public class HiringFlowService {
             int gh = user.getGithubScore() != null ? user.getGithubScore() : 0;
             int li = user.getLinkedinScore() != null ? user.getLinkedinScore() : 0;
 
-            boolean failedGithub = job.getMinGithubScore() > 0 && gh < job.getMinGithubScore();
-            boolean failedLinkedin = job.getMinLinkedinScore() > 0 && li < job.getMinLinkedinScore();
+            int minGh = job.getMinGithubScore() != null ? job.getMinGithubScore() : 0;
+            int minLi = job.getMinLinkedinScore() != null ? job.getMinLinkedinScore() : 0;
+
+            boolean failedGithub = minGh > 0 && gh < minGh;
+            boolean failedLinkedin = minLi > 0 && li < minLi;
 
             if (failedGithub || failedLinkedin) {
                 Application app = Application.builder()
@@ -139,7 +144,7 @@ public class HiringFlowService {
                 app = applicationRepository.save(app);
                 auditService.logStageChange(app.getId(), null, ApplicationStage.REJECTED, candidateId,
                         "Candidate auto-rejected due to low AI pre-screening scores (Thresholds: GH "
-                                + job.getMinGithubScore() + ", LI " + job.getMinLinkedinScore() + ")");
+                                + minGh + ", LI " + minLi + ")");
                 return app;
             }
         }
@@ -496,6 +501,11 @@ public class HiringFlowService {
             dto.put("candidateId", app.getCandidateId());
             dto.put("stage", app.getCurrentStage() != null ? app.getCurrentStage().name() : null);
             dto.put("overallStatus", app.getOverallStatus() != null ? app.getOverallStatus().name() : null);
+            dto.put("bgvStatus", app.getBgvStatus() != null ? app.getBgvStatus().name() : "NOT_STARTED");
+            offerRepository.findByApplicationId(app.getId()).ifPresent(offer -> {
+                dto.put("offerStatus", offer.getStatus());
+                dto.put("offerId", offer.getId());
+            });
             dto.put("attemptCount", app.getAttemptCount());
             dto.put("currentRound", app.getCurrentRoundNumber());
             dto.put("testStatus", app.getTestStatus() != null ? app.getTestStatus().name() : "NOT_AVAILABLE");

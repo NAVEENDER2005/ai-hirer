@@ -49,17 +49,16 @@ public class BgvService {
                 .verificationStatus(BgvStatus.PENDING)
                 .build();
 
-        // Auto-update application status if it was NOT_STARTED
+        // Auto-update application status to VERIFIED when candidate uploads documents
         applicationRepository.findAll().stream()
                 .filter(a -> a.getCandidateId().equals(candidateId))
-                .filter(a -> a.getBgvStatus() == BgvStatus.NOT_STARTED)
                 .forEach(a -> {
-                    a.setBgvStatus(BgvStatus.PENDING);
+                    a.setBgvStatus(BgvStatus.VERIFIED);
                     a.setCurrentStage(ApplicationStage.BACKGROUND_VERIFICATION);
                     applicationRepository.save(a);
                     auditService.logStageChange(a.getId(), a.getCurrentStage(),
                             ApplicationStage.BACKGROUND_VERIFICATION, candidateId,
-                            "Document uploaded: " + type + ". BGV status moved to PENDING.");
+                            "Document uploaded: " + type + ". BGV status moved to VERIFIED.");
                 });
 
         return documentRepository.save(doc);
@@ -67,6 +66,10 @@ public class BgvService {
 
     public List<CandidateDocument> getCandidateDocuments(UUID candidateId) {
         return documentRepository.findByCandidateId(candidateId);
+    }
+
+    public CandidateDocument getDocumentById(UUID documentId) {
+        return documentRepository.findById(documentId).orElseThrow(() -> new IllegalArgumentException("Document not found"));
     }
 
     public File compressDocuments(UUID candidateId) throws IOException {
@@ -123,12 +126,13 @@ public class BgvService {
         return result;
     }
 
+    @org.springframework.transaction.annotation.Transactional
     public Map<String, Object> updateBgvStatus(UUID applicationId, BgvStatus status) {
         Application app = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new IllegalArgumentException("Application not found"));
 
         app.setBgvStatus(status);
-        if (status == BgvStatus.VERIFIED) {
+        if (status == BgvStatus.VERIFIED || status == BgvStatus.PENDING || status == BgvStatus.UNDER_REVIEW) {
             app.setCurrentStage(ApplicationStage.BACKGROUND_VERIFICATION);
         } else if (status == BgvStatus.REJECTED) {
             app.setOverallStatus(OverallStatus.REJECTED);
